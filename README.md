@@ -18,6 +18,6 @@ You can install the development version of MethylSummarizR from
 [GitHub](https://github.com/) with:
 
 ``` r
-# install.packages("pak")
-pak::pak("jagoode27/MethylSummarizR")
+# install.packages("remotes")
+remotes::install_github("jagoode27/MethylSummarizR")
 ```
