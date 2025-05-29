@@ -1,14 +1,16 @@
 Package: MethylSummarizR
-Title: What the Package Does (One Line, Title Case)
-Version: 0.0.0.9000
+Title: Simple Tools to Summarize DNA Methylation Data
+Version: 0.0.0.1000
 Authors@R: 
-    person("First", "Last", , "first.last@example.com", role = c("aut", "cre"),
-           comment = c(ORCID = "YOUR-ORCID-ID"))
-Description: What the package does (one paragraph).
-License: `use_mit_license()`, `use_gpl3_license()` or friends to pick a
-    license
+    person("Joshua A.", "Goode", , "jagoode27@gmail.com", role = c("aut", "cre"),
+           comment = c(ORCID = "0000-0003-3290-0284"))
+Description: MethylSummarizR is an R package that offers user-friendly tools and functions for generating summary statistics and reliability estimates of DNA methylation data. It aims to enhance the accessibility and reproducibility of methylation data analysis.
+License: GPL (>= 3)
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.3.2
 URL: https://github.com/jagoode27/MethylSummarizR
 BugReports: https://github.com/jagoode27/MethylSummarizR/issues
+Suggests: 
+    testthat (>= 3.0.0)
+Config/testthat/edition: 3
