@@ -7,6 +7,11 @@
 
 <!-- badges: end -->
 
+### 🚧 Under Development 🚧
+
+**This package is still in development and not yet ready for general
+use. Proceed with caution!**
+
 The goal of MethylSummarizR is to offer user-friendly tools and
 functions for generating summary statistics and reliability estimates of
 DNA methylation data. It aims to enhance the accessibility and
