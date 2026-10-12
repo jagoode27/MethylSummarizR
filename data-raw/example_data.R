@@ -1,39 +1,37 @@
 # set up
 rm(list = ls())
 gc()
+devtools::load_all()
+set.seed(20261012)
 
-# manually construct matrix of m-values
-mval_matrix <- matrix(c(
-   0.72, -1.67,  0.34, -0.45,  1.91,  1.12, -0.08,  0.57,  1.38, -0.56,
-  -0.72, -1.28,  1.84, -0.35,  1.47,  0.23,  1.35,  0.62, -1.54, -1.97,
-  -0.09,  1.67,  0.88, -0.92, -1.13, -0.27, -1.48, -0.71,  1.72,  0.29,
-   1.55, -0.31,  0.47, -1.63,  1.21, -0.16,  0.74, -0.85,  0.21,  1.87,
-  -1.94,  1.90, -0.39,  1.27, -1.72,  0.44,  0.18, -1.21,  0.93, -0.34,
-   0.51, -1.80,  1.66,  0.10, -1.26,  1.39, -0.14,  0.87,  1.13, -0.61,
-  -0.83,  1.48,  1.05,  0.33, -0.69, -0.93, -1.34,  0.65, -0.29,  1.05,
-   1.79, -0.50,  1.20, -1.53, -1.31,  0.37,  0.58,  1.02, -1.78, -0.15,
-  -1.45,  0.17,  0.46,  1.59, -0.82, -1.12,  0.36,  1.76,  0.79, -0.66,
-   0.28, -0.77,  1.38, -0.04, -1.81, -0.22,  1.14,  1.63, -0.99,  0.19,
-   1.31,  1.60, -1.37, -0.87,  0.68,  0.08,  1.52, -0.74, -1.11, -1.60,
-  -0.61,  1.07, -0.70,  0.54, -1.03,  1.94, -0.19,  1.06, -1.78, -0.45,
-   1.82, -1.29,  0.11, -0.64,  0.66,  1.11,  0.92, -0.86,  1.40, -1.01,
-  -0.55,  0.42,  1.99, -1.50, -0.25,  1.82, -1.79,  0.21, -0.44,  1.57,
-   0.09,  1.31, -1.87,  0.84, -1.52,  0.55,  1.22, -0.47,  0.43, -0.22),
-  nrow = 15, byrow = TRUE) |>
-  `colnames<-`(sprintf("samp%02d", 1:10)) |>
-  `rownames<-`(c("cg07881041", "cg18478105", "cg23229610",
-                 "cg03513874", "cg09835024", "cg05451842",
-                 "cg14797042", "cg09838562", "cg25458538",
-                 "cg14361672", "cg01763666", "cg09261072",
-                 "cg02404579", "cg12950382", "cg02115394"))
+# sample and person IDs: 7 people with two samples, 1 with three, and 3 with one
+n_probes <- 30
+person_ids <- sprintf("p%02d", 1:11)
+pheno <- data.frame(
+  sample_id = sprintf("s%02d", 1:20),
+  person_id = sample(c(rep(person_ids[1:7], each = 2), rep(person_ids[8], 3), person_ids[9:11]))
+)
+
+# m-values from a probe mean, a person effect, and probe-specific sample noise
+probe_ids <- sprintf("cg%08d", sort(sample.int(99999999, n_probes)))
+probe_mean <- stats::rnorm(n_probes, mean = 0, sd = 2)
+person_effect <- matrix(
+  stats::rnorm(n_probes * length(person_ids), mean = 0, sd = 0.8),
+  nrow = n_probes,
+  dimnames = list(NULL, person_ids)
+)
+noise_sd <- stats::runif(n_probes, min = 0.1, max = 0.8)
+noise <- matrix(stats::rnorm(n_probes * nrow(pheno)), nrow = n_probes) * noise_sd
+mval_matrix <- (probe_mean + person_effect[, pheno$person_id] + noise) |>
+  round(digits = 3) |>
+  `dimnames<-`(list(probe_ids, pheno$sample_id))
 
 # add missingness
-prop_miss <- 0.10
-set.seed(123)
-mval_matrix[sample(length(mval_matrix), ceiling(prop_miss * length(mval_matrix)))] <- NA
+prop_miss <- 0.05
+mval_matrix[sample(length(mval_matrix), round(prop_miss * length(mval_matrix)))] <- NA
 
 # create beta matrix
-beta_matrix <- 2^mval_matrix / (2^mval_matrix + 1)
+beta_matrix <- convert_m_to_beta(mval_matrix)
 
 # save data
-usethis::use_data(mval_matrix, beta_matrix, overwrite = TRUE)
+usethis::use_data(mval_matrix, beta_matrix, pheno, overwrite = TRUE)
