@@ -4,18 +4,22 @@
 \alias{methyl_summarize}
 \title{Summarize Methylation Data}
 \usage{
-methyl_summarize(methyl_data, methyl_format)
+methyl_summarize(methyl_data, methyl_in, methyl_out = "both", cores = 1)
 }
 \arguments{
-\item{methyl_data}{A numeric matrix containing methylation data. Each row represents a probe, and each column represents a sample.}
+\item{methyl_data}{A numeric matrix containing methylation data, with probe IDs as row names. Each row represents a probe, and each column represents a sample.}
 
-\item{methyl_format}{A character string indicating the format of the methylation data. Must be either \code{"betas"} or \code{"mvals"}.}
+\item{methyl_in}{A character string indicating the scale of \code{methyl_data}. Must be either \code{"betas"} or \code{"mvals"}.}
+
+\item{methyl_out}{A character string indicating the scale of the summaries to return. Must be \code{"betas"}, \code{"mvals"}, or \code{"both"} (the default).}
+
+\item{cores}{The number of cores to use. Probes are split into \code{cores} chunks that are summarized in parallel using the base parallel package: forked processes on macOS and Linux, and a socket cluster on Windows. The default of 1 runs without parallel processing.}
 }
 \value{
-A list containing two data frames:
+A named list with one data frame for each scale requested by \code{methyl_out}:
 \describe{
-\item{\code{betas}}{A data frame summarizing the methylation data in beta values format.}
-\item{\code{mvals}}{A data frame summarizing the methylation data in M-values format.}
+\item{\code{betas}}{A data frame summarizing the methylation data on the beta value scale.}
+\item{\code{mvals}}{A data frame summarizing the methylation data on the M-value scale.}
 }
 
 Each data frame includes the following columns:
@@ -41,19 +45,23 @@ Each data frame includes the following columns:
 }
 }
 \description{
-The \code{methyl_summarize()} function provides a comprehensive summary of methylation data, either in beta values or M-values format. The function computes various statistics, including mean, standard deviation, confidence intervals, and more for each probe across samples.
+The \code{methyl_summarize()} function provides a comprehensive summary of methylation data on the beta value scale, the M-value scale, or both. The function computes various statistics, including mean, standard deviation, confidence intervals, and more for each probe across samples.
 }
 \details{
-The function checks whether the input \code{methyl_data} is a numeric matrix and whether \code{methyl_format} is valid. It then summarizes the data, providing extensive statistics for each probe. If the number of columns exceeds the number of rows in \code{methyl_data}, a warning is issued to ensure that the probes are organized as rows and samples as columns.
+The function checks whether \code{methyl_data} is a numeric matrix with row names and whether \code{methyl_in}, \code{methyl_out}, and \code{cores} are valid. Data are converted between scales with \code{\link[=convert_beta_to_m]{convert_beta_to_m()}} and \code{\link[=convert_m_to_beta]{convert_m_to_beta()}} only when \code{methyl_out} asks for a scale other than \code{methyl_in}. Missing values are excluded from each statistic. The 95\% confidence interval uses a normal approximation (mean plus or minus 1.96 standard errors) and is \code{NA} for probes with fewer than two non-missing values. If the number of columns exceeds the number of rows in \code{methyl_data}, a warning is issued to ensure that the probes are organized as rows and samples as columns.
 }
 \examples{
-\dontrun{
-# example with betas as input
+# Summarize beta values on both scales
 data(beta_matrix, package = "MethylSummarizR")
-results <- methyl_summarize(methyl_data = beta_matrix, methyl_format = "betas")
-# example with M-values as input
-data(mval_matrix, package = "MethylSummarizR")
-results <- methyl_summarize(methyl_data = mval_matrix, methyl_format = "mvals")
-}
+results <- methyl_summarize(beta_matrix, methyl_in = "betas")
+head(results$betas)
 
+# Summarize M-values on the beta value scale only
+data(mval_matrix, package = "MethylSummarizR")
+results <- methyl_summarize(mval_matrix, methyl_in = "mvals", methyl_out = "betas")
+head(results$betas)
+
+}
+\seealso{
+\code{\link[=methyl_reliability]{methyl_reliability()}} for agreement between duplicate samples.
 }
