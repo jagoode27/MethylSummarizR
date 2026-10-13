@@ -1,0 +1,281 @@
+---
+title: "Getting started with MethylSummarizR"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Getting started with MethylSummarizR}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+```{r setup}
+library(MethylSummarizR)
+```
+
+## Overview
+
+MethylSummarizR produces probe-level summary statistics and reliability estimates for DNA methylation data. It has five functions:
+
+- `convert_beta_to_m()` and `convert_m_to_beta()` move data between the beta value and M-value scales.
+- `methyl_summarize()` describes each probe across samples.
+- `methyl_reliability()` measures agreement between duplicate samples from the same person.
+- `collapse_epic2()` averages replicate probes on the Illumina MethylationEPIC v2 array.
+
+All functions expect probes in rows and samples in columns, with probe IDs as row names. `methyl_summarize()`, `methyl_reliability()`, and the conversion functions need a numeric matrix, so convert a data frame with `as.matrix()` first.
+
+Methylation data come on two scales. Beta values are the proportion of methylated signal at a probe and range from 0 to 1. M-values are the log2 ratio of methylated to unmethylated signal and are unbounded, which often suits statistical models better. `methyl_summarize()` and `methyl_reliability()` take a `methyl_in` argument naming the scale of the input (`"betas"` or `"mvals"`) and a `methyl_out` argument naming the scale or scales to report.
+
+## Example data
+
+The package includes a small synthetic dataset: 30 probes measured on 20 samples, stored as beta values in `beta_matrix` and as M-values in `mval_matrix`.
+
+```{r}
+dim(beta_matrix)
+beta_matrix[1:3, 1:5]
+```
+
+About 5 percent of values are missing.
+
+```{r}
+mean(is.na(beta_matrix))
+```
+
+`pheno` links each sample to a person. Some people contributed more than one sample, which is what `methyl_reliability()` needs.
+
+```{r}
+utils::head(pheno)
+```
+
+Seven people have two samples, one has three, and three have one.
+
+```{r}
+table(table(pheno$person_id))
+```
+
+## Converting between scales
+
+`convert_beta_to_m()` and `convert_m_to_beta()` convert a whole matrix at once. The two example matrices hold the same data, so converting one reproduces the other.
+
+```{r}
+mvals <- convert_beta_to_m(beta_matrix)
+all.equal(mvals, mval_matrix)
+```
+
+A beta value of exactly 0 or 1 would give an infinite M-value, so `convert_beta_to_m()` first moves values to within 1e-6 of the boundaries. Missing values stay missing.
+
+```{r}
+edge_cases <- matrix(
+  c(0, 0.5, 1, NA),
+  ncol = 1,
+  dimnames = list(c("cg01", "cg02", "cg03", "cg04"), "s01")
+)
+convert_beta_to_m(edge_cases)
+```
+
+Beta values outside the range 0 to 1 are converted with a warning, since they usually point to a problem upstream.
+
+## Summarizing probes
+
+`methyl_summarize()` computes the mean, standard deviation, 95% confidence interval, coefficient of variation, percentiles, and missingness of each probe. With the default `methyl_out = "both"`, it returns a list with one data frame per scale.
+
+```{r}
+summaries <- methyl_summarize(beta_matrix, methyl_in = "betas")
+names(summaries)
+```
+
+Each data frame has one row per probe. A few of its columns:
+
+```{r}
+utils::head(summaries$betas[, c("probe", "mean", "sd", "p50", "miss_p")])
+```
+
+All 18 columns are listed in `?methyl_summarize`.
+
+```{r}
+names(summaries$betas)
+```
+
+To get a single scale, set `methyl_out`. The data are converted only when the output scale differs from `methyl_in`. Here M-values are summarized on the beta value scale:
+
+```{r}
+beta_summaries <- methyl_summarize(mval_matrix, methyl_in = "mvals", methyl_out = "betas")
+utils::head(beta_summaries$betas[, c("probe", "mean", "sd", "p50", "miss_p")])
+```
+
+These match the beta value summaries above, since the two example matrices hold the same data.
+
+## Reliability from duplicate samples
+
+`methyl_reliability()` estimates how well each probe agrees between two samples from the same person. It needs the methylation matrix, a phenotype data frame, and the names of the columns in that data frame that identify people (`per_id`) and samples (`meth_id`).
+
+### How samples are paired
+
+For each person, the first two rows in `pheno` form the duplicate pair. People with one sample are ignored, and so is any sample after the second. Samples listed in `pheno` but missing from the matrix are dropped with a warning.
+
+In the example data, person p08 has three samples, so s09 and s13 are paired and s19 is not used:
+
+```{r}
+pheno[pheno$person_id == "p08", ]
+```
+
+To pair a different two samples, reorder the rows of `pheno` before calling `methyl_reliability()`.
+
+### Running the estimates
+
+```{r}
+reliability <- methyl_reliability(
+  beta_matrix,
+  pheno,
+  per_id = "person_id",
+  meth_id = "sample_id",
+  methyl_in = "betas",
+  methyl_out = "mvals"
+)
+utils::head(reliability$mvals[, c("probe", "icc_1", "icc_a1", "pearson", "diff_mn", "n_dups")])
+```
+
+The output has six intraclass correlation coefficients (ICCs), the Pearson correlation between the first and second samples, and the mean, standard deviation, and coefficient of variation of the absolute differences between duplicates. `?methyl_reliability` describes every column.
+
+### Choosing an ICC
+
+The ICCs follow Shrout and Fleiss (1979) and McGraw and Wong (1996). They differ in two ways.
+
+- **Model.** `icc_1` is a one-way model. It suits duplicates where "first" and "second" are interchangeable, such as technical replicates run together. The two-way models treat the first and second samples as distinct occasions, for example two batches or two time points. `icc_a1` measures absolute agreement, so a systematic shift between occasions lowers it. `icc_c1` measures consistency and ignores that shift.
+- **Single or average measurement.** Columns ending in `1` describe the reliability of one sample. Columns ending in `k` describe the reliability of the mean of the two samples. Use the `1` versions when the analysis uses one sample per person, and the `k` versions when it averages duplicates.
+
+An ICC compares between-person variation to total variation. A probe that barely varies across people can have a low ICC even when duplicates agree closely, so read the ICCs alongside `diff_mn`, which is on the scale of the data.
+
+A common rule of thumb (Koo and Li 2016) calls ICCs below 0.5 poor, 0.5 to 0.75 moderate, 0.75 to 0.9 good, and above 0.9 excellent. Counting probes in each band gives a quick overview:
+
+```{r}
+icc_band <- cut(
+  reliability$mvals$icc_1,
+  breaks = c(-Inf, 0.5, 0.75, 0.9, Inf),
+  labels = c("poor", "moderate", "good", "excellent"),
+  right = FALSE
+)
+table(icc_band, useNA = "ifany")
+```
+
+### Complete pairs per probe
+
+`n_dups` counts the duplicate pairs with both values observed at a probe. Missing values make it vary from probe to probe. The example data have 8 pairs, but some probes have fewer:
+
+```{r}
+table(reliability$mvals$n_dups)
+```
+
+Estimates from few pairs are noisy, so consider dropping probes with a low `n_dups`. When a probe has fewer than 2 complete pairs, its metrics are `NA` and `methyl_reliability()` gives one warning with the number of affected probes.
+
+## EPIC v2 replicate probes
+
+The MethylationEPIC v2 array measures some CpG sites with more than one probe. These probes share a CpG ID and end in a suffix, such as `cg00000029_TC21` and `cg00000029_TC22`. `collapse_epic2()` averages them within each sample so that each CpG ID appears once.
+
+```{r}
+epic2 <- matrix(
+  c(0.10, 0.20, 0.30,
+    0.12, NA,   0.34,
+    0.80, 0.70, 0.60),
+  nrow = 3,
+  byrow = TRUE,
+  dimnames = list(
+    c("cg00000029_TC21", "cg00000029_TC22", "cg00000109_BC21"),
+    c("s01", "s02", "s03")
+  )
+)
+collapse_epic2(epic2)
+```
+
+Missing values are ignored when averaging, so s02 takes the single observed value for cg00000029. Probes without a replicate keep their value under the shortened ID.
+
+`collapse_epic2()` also accepts a data frame. If the probe IDs are in a column, name it with `probe_names`:
+
+```{r}
+epic2_df <- data.frame(probe = rownames(epic2), epic2, row.names = NULL)
+collapse_epic2(epic2_df, probe_names = "probe")
+```
+
+## Parallel processing
+
+`methyl_summarize()` and `methyl_reliability()` take a `cores` argument. The probes are split into `cores` chunks that run in parallel through the base parallel package. macOS and Linux use forked processes. Windows uses a socket cluster, which adds some startup time. The results are the same for any value of `cores`.
+
+```{r, eval = FALSE}
+parallel::detectCores()
+
+summaries <- methyl_summarize(beta_matrix, methyl_in = "betas", cores = 4)
+
+reliability <- methyl_reliability(
+  beta_matrix,
+  pheno,
+  per_id = "person_id",
+  meth_id = "sample_id",
+  methyl_in = "betas",
+  cores = 4
+)
+```
+
+Parallel processing pays off on full arrays with hundreds of thousands of probes. For a dataset as small as the example, the setup costs more than it saves.
+
+## A typical workflow
+
+A common sequence is to estimate reliability from the duplicates, summarize one sample per person, and combine the two into a probe-level table. With EPIC v2 data, run `collapse_epic2()` first so that every step works with one row per CpG site.
+
+Estimate reliability on the M-value scale:
+
+```{r}
+reliability <- methyl_reliability(
+  beta_matrix,
+  pheno,
+  per_id = "person_id",
+  meth_id = "sample_id",
+  methyl_in = "betas",
+  methyl_out = "mvals"
+)
+```
+
+Keep the first sample from each person so that people with duplicates are not counted twice, then summarize those samples:
+
+```{r}
+one_per_person <- pheno$sample_id[!duplicated(pheno$person_id)]
+length(one_per_person)
+
+summaries <- methyl_summarize(
+  beta_matrix[, one_per_person],
+  methyl_in = "betas",
+  methyl_out = "mvals"
+)
+```
+
+Merge the two by probe:
+
+```{r}
+probe_table <- merge(
+  summaries$mvals[, c("probe", "mean", "sd", "miss_p")],
+  reliability$mvals[, c("probe", "icc_1", "diff_mn", "n_dups")],
+  by = "probe"
+)
+utils::head(probe_table)
+```
+
+The table can then guide probe filtering. The thresholds below are only an illustration. Choose values that fit your study.
+
+```{r}
+keep <- probe_table$miss_p <= 0.1 &
+  probe_table$n_dups >= 6 &
+  probe_table$icc_1 >= 0.5
+sum(keep)
+```
+
+## References
+
+Koo, T. K., & Li, M. Y. (2016). A guideline of selecting and reporting intraclass correlation coefficients for reliability research. *Journal of Chiropractic Medicine*, 15(2), 155-163.
+
+McGraw, K. O., & Wong, S. P. (1996). Forming inferences about some intraclass correlation coefficients. *Psychological Methods*, 1(1), 30-46.
+
+Shrout, P. E., & Fleiss, J. L. (1979). Intraclass correlations: Uses in assessing rater reliability. *Psychological Bulletin*, 86(2), 420-428.
