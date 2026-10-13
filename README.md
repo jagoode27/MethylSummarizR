@@ -27,3 +27,9 @@ You can install the development version of MethylSummarizR from
 # install.packages("remotes")
 remotes::install_github("jagoode27/MethylSummarizR")
 ```
+
+## Getting started
+
+The [getting started vignette](vignettes/MethylSummarizR.Rmd) walks
+through each function using the example data. To read it in R, install
+with `build_vignettes = TRUE` and run `vignette("MethylSummarizR")`.
