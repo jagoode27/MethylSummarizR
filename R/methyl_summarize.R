@@ -35,7 +35,7 @@
 #'   \item `nonmiss_p`: Proportion of non-missing values.
 #' }
 #'
-#' @details The function checks whether `methyl_data` is a numeric matrix with row names and whether `methyl_in`, `methyl_out`, and `cores` are valid. Data are converted between scales with [convert_beta_to_m()] and [convert_m_to_beta()] only when `methyl_out` asks for a scale other than `methyl_in`. Missing values are excluded from each statistic. The 95% confidence interval uses a normal approximation (mean plus or minus 1.96 standard errors) and is `NA` for probes with fewer than two non-missing values. If the number of columns exceeds the number of rows in `methyl_data`, a warning is issued to ensure that the probes are organized as rows and samples as columns.
+#' @details The function checks whether `methyl_data` is a numeric matrix with row names and whether `methyl_in`, `methyl_out`, and `cores` are valid. Data are converted between scales only when `methyl_out` asks for a scale other than `methyl_in`. Before conversion to M-values, beta values of 0 or 1 are moved 1e-6 inside those bounds so that M-values stay finite, and beta values outside 0 to 1 give a warning. Missing values are excluded from each statistic. The 95% confidence interval uses a normal approximation (mean plus or minus 1.96 standard errors) and is `NA` for probes with fewer than two non-missing values. If the number of columns exceeds the number of rows in `methyl_data`, a warning is issued to ensure that the probes are organized as rows and samples as columns.
 #'
 #' @seealso [methyl_reliability()] for agreement between duplicate samples.
 #'
