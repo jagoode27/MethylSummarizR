@@ -36,7 +36,7 @@
 #'
 #' For each probe, only pairs with both values observed are used. ICCs follow the forms described by Shrout and Fleiss (1979) and McGraw and Wong (1996), with the first and second samples of each pair treated as the two measurements. Metrics are `NA` for probes with fewer than two complete pairs (a single warning reports how many) and where they cannot be computed, such as when a probe has no variance.
 #'
-#' Data are converted between scales with [convert_beta_to_m()] and [convert_m_to_beta()] only when `methyl_out` asks for a scale other than `methyl_in`.
+#' Data are converted between scales only when `methyl_out` asks for a scale other than `methyl_in`. Before conversion to M-values, beta values of 0 or 1 are moved 1e-6 inside those bounds so that M-values stay finite, and beta values outside 0 to 1 give a warning.
 #'
 #' @references
 #' Shrout, P. E., & Fleiss, J. L. (1979). Intraclass correlations: Uses in assessing rater reliability. *Psychological Bulletin*, 86(2), 420-428.

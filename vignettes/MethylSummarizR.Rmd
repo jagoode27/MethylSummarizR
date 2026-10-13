@@ -20,14 +20,13 @@ library(MethylSummarizR)
 
 ## Overview
 
-MethylSummarizR produces probe-level summary statistics and reliability estimates for DNA methylation data. It has five functions:
+MethylSummarizR produces probe-level summary statistics and reliability estimates for DNA methylation data. It has three functions:
 
-- `convert_beta_to_m()` and `convert_m_to_beta()` move data between the beta value and M-value scales.
 - `methyl_summarize()` describes each probe across samples.
 - `methyl_reliability()` measures agreement between duplicate samples from the same person.
 - `collapse_epic2()` averages replicate probes on the Illumina MethylationEPIC v2 array.
 
-All functions expect probes in rows and samples in columns, with probe IDs as row names. `methyl_summarize()`, `methyl_reliability()`, and the conversion functions need a numeric matrix, so convert a data frame with `as.matrix()` first.
+All functions expect probes in rows and samples in columns, with probe IDs as row names. `methyl_summarize()` and `methyl_reliability()` need a numeric matrix, so convert a data frame with `as.matrix()` first.
 
 Methylation data come on two scales. Beta values are the proportion of methylated signal at a probe and range from 0 to 1. M-values are the log2 ratio of methylated to unmethylated signal and are unbounded, which often suits statistical models better. `methyl_summarize()` and `methyl_reliability()` take a `methyl_in` argument naming the scale of the input (`"betas"` or `"mvals"`) and a `methyl_out` argument naming the scale or scales to report.
 
@@ -58,28 +57,6 @@ Seven people have two samples, one has three, and three have one.
 table(table(pheno$person_id))
 ```
 
-## Converting between scales
-
-`convert_beta_to_m()` and `convert_m_to_beta()` convert a whole matrix at once. The two example matrices hold the same data, so converting one reproduces the other.
-
-```{r}
-mvals <- convert_beta_to_m(beta_matrix)
-all.equal(mvals, mval_matrix)
-```
-
-A beta value of exactly 0 or 1 would give an infinite M-value, so `convert_beta_to_m()` first moves values to within 1e-6 of the boundaries. Missing values stay missing.
-
-```{r}
-edge_cases <- matrix(
-  c(0, 0.5, 1, NA),
-  ncol = 1,
-  dimnames = list(c("cg01", "cg02", "cg03", "cg04"), "s01")
-)
-convert_beta_to_m(edge_cases)
-```
-
-Beta values outside the range 0 to 1 are converted with a warning, since they usually point to a problem upstream.
-
 ## Summarizing probes
 
 `methyl_summarize()` computes the mean, standard deviation, 95% confidence interval, coefficient of variation, percentiles, and missingness of each probe. With the default `methyl_out = "both"`, it returns a list with one data frame per scale.
@@ -109,6 +86,8 @@ utils::head(beta_summaries$betas[, c("probe", "mean", "sd", "p50", "miss_p")])
 ```
 
 These match the beta value summaries above, since the two example matrices hold the same data.
+
+A beta value of exactly 0 or 1 would give an infinite M-value, so before converting to M-values, these values are moved 1e-6 inside the bounds. Beta values outside 0 to 1 are converted with a warning, since they usually point to a problem upstream. Missing values stay missing on both scales.
 
 ## Reliability from duplicate samples
 
