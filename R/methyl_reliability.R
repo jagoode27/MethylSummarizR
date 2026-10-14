@@ -36,6 +36,8 @@
 #'
 #' For each probe, only pairs with both values observed are used. ICCs follow the forms described by Shrout and Fleiss (1979) and McGraw and Wong (1996), with the first and second samples of each pair treated as the two measurements. Metrics are `NA` for probes with fewer than two complete pairs (a single warning reports how many) and where they cannot be computed, such as when a probe has no variance.
 #'
+#' ICC estimates can be negative when a probe varies little across people relative to the differences between duplicates. `icc_1` and `icc_c1` cannot fall below -1, but the other ICCs have no fixed lower bound, and `icc_ak` can exceed 1. Such values indicate poor reliability.
+#'
 #' Data are converted between scales only when `methyl_out` asks for a scale other than `methyl_in`. Before conversion to M-values, beta values of 0 or 1 are moved 1e-6 inside those bounds so that M-values stay finite, and beta values outside 0 to 1 give a warning.
 #'
 #' @references
@@ -162,7 +164,7 @@ reliability_chunk <- function(methyl_1, methyl_2) {
   metrics <- cbind(icc_1, icc_c1, icc_a1, icc_k, icc_ck, icc_ak,
                    pearson, diff_mn, diff_sd, diff_cv)
   metrics[n < 2, ] <- NA
-  metrics[is.nan(metrics)] <- NA
+  metrics[!is.finite(metrics)] <- NA
 
   data.frame(probe = rownames(methyl_1), metrics, n_dups = as.integer(n), row.names = NULL)
 }
