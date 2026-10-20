@@ -5,23 +5,26 @@
 \alias{pheno}
 \title{Phenotype Data for the Example Matrices}
 \format{
-A data frame with 20 rows and 2 columns:
+A data frame with 20 rows and 3 columns:
 \describe{
 \item{sample_id}{Sample ID, matching the column names of the example matrices.}
 \item{person_id}{Person ID, shared by samples from the same person.}
+\item{dupe}{1 for the second and later samples from a person, in the order listed, and 0 otherwise.}
 }
 }
 \usage{
 pheno
 }
 \description{
-Synthetic phenotype data linking the 20 samples in \link{beta_matrix} and
-\link{mval_matrix} to 11 people. Seven people have two samples, one person has
-three samples, and three people have one sample, giving 8 duplicate pairs
-for \code{\link[=methyl_reliability]{methyl_reliability()}}.
+Synthetic phenotype data linking the 20 samples in \link{beta_matrix},
+\link{mval_matrix}, and \link{epic2_betas} to 11 people. Seven people have two
+samples, one person has three samples, and three people have one sample,
+giving 8 duplicate pairs for \code{\link[=methyl_reliability]{methyl_reliability()}}. Keeping the rows with
+\code{dupe} equal to 0 gives one sample per person.
 }
 \examples{
 data(pheno)
 table(pheno$person_id)
+table(pheno$dupe)
 }
 \keyword{datasets}

@@ -110,7 +110,7 @@ test_that("methyl_reliability uses only the first two samples per person", {
 })
 
 test_that("methyl_reliability drops samples missing from methyl_data", {
-  pheno_extra <- rbind(pheno, data.frame(sample_id = "s99", person_id = "p01"))
+  pheno_extra <- rbind(pheno, data.frame(sample_id = "s99", person_id = "p01", dupe = 1L))
   expect_warning(
     result <- methyl_reliability(beta_matrix, pheno_extra, "person_id", "sample_id", "betas"),
     "1 sample(s) in pheno were not found", fixed = TRUE
