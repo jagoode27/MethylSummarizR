@@ -99,6 +99,19 @@ test_that("methyl_reliability gives perfect agreement for identical duplicates",
   expect_true(all(is.na(result$diff_cv)))
 })
 
+test_that("methyl_reliability returns out-of-range ICCs and NA for infinite ones", {
+  methyl_data <- paired_data(c(1, 3, 2), c(3, 1, 2))
+  result <- methyl_reliability(methyl_data, paired_pheno, "person_id", "sample_id",
+                               "mvals", "mvals")$mvals
+
+  expect_equal(result$icc_1, rep(-1, 8))
+  expect_equal(result$icc_c1, rep(-1, 8))
+  expect_equal(result$icc_a1, rep(-3, 8))
+  expect_equal(result$icc_ak, rep(3, 8))
+  expect_true(all(is.na(result$icc_k)))
+  expect_true(all(is.na(result$icc_ck)))
+})
+
 test_that("methyl_reliability uses only the first two samples per person", {
   methyl_data <- cbind(paired_data(c(1, 2, 3), c(2, 3, 5)), s7 = 100)
   pheno_extra <- rbind(paired_pheno, data.frame(sample_id = "s7", person_id = "a"))

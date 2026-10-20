@@ -60,6 +60,8 @@ For each person with more than one sample in \code{pheno}, the first two samples
 
 For each probe, only pairs with both values observed are used. ICCs follow the forms described by Shrout and Fleiss (1979) and McGraw and Wong (1996), with the first and second samples of each pair treated as the two measurements. Metrics are \code{NA} for probes with fewer than two complete pairs (a single warning reports how many) and where they cannot be computed, such as when a probe has no variance.
 
+ICC estimates can be negative when a probe varies little across people relative to the differences between duplicates. \code{icc_1} and \code{icc_c1} cannot fall below -1, but the other ICCs have no fixed lower bound, and \code{icc_ak} can exceed 1. Such values indicate poor reliability.
+
 Data are converted between scales only when \code{methyl_out} asks for a scale other than \code{methyl_in}. Before conversion to M-values, beta values of 0 or 1 are moved 1e-6 inside those bounds so that M-values stay finite, and beta values outside 0 to 1 give a warning.
 }
 \examples{

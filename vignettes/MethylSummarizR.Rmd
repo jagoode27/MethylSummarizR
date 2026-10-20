@@ -134,7 +134,7 @@ The ICCs follow Shrout and Fleiss (1979) and McGraw and Wong (1996). They differ
 - **Model.** `icc_1` is a one-way model. It suits duplicates where "first" and "second" are interchangeable, such as technical replicates run together. The two-way models treat the first and second samples as distinct occasions, for example two batches or two time points. `icc_a1` measures absolute agreement, so a systematic shift between occasions lowers it. `icc_c1` measures consistency and ignores that shift.
 - **Single or average measurement.** Columns ending in `1` describe the reliability of one sample. Columns ending in `k` describe the reliability of the mean of the two samples. Use the `1` versions when the analysis uses one sample per person, and the `k` versions when it averages duplicates.
 
-An ICC compares between-person variation to total variation. A probe that barely varies across people can have a low ICC even when duplicates agree closely, so read the ICCs alongside `diff_mn`, which is on the scale of the data.
+An ICC compares between-person variation to total variation. A probe that barely varies across people can have a low ICC even when duplicates agree closely, so read the ICCs alongside `diff_mn`, which is on the scale of the data. Such probes can also give negative ICCs or an `icc_ak` above 1, and both mean poor reliability.
 
 A common rule of thumb (Koo and Li 2016) calls ICCs below 0.5 poor, 0.5 to 0.75 moderate, 0.75 to 0.9 good, and above 0.9 excellent. Counting probes in each band gives a quick overview:
 
