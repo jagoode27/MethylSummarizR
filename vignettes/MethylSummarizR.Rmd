@@ -32,7 +32,7 @@ Methylation data come on two scales. Beta values are the proportion of methylate
 
 ## Example data
 
-The package includes a small synthetic dataset: 30 probes measured on 20 samples, stored as beta values in `beta_matrix` and as M-values in `mval_matrix`.
+The package includes a small synthetic dataset: 30 probes measured on 20 samples, stored as beta values in `beta_matrix` and as M-values in `mval_matrix`. `epic2_betas` holds the same beta values with EPIC v2 probe IDs and is used in the EPIC v2 section below.
 
 ```{r}
 dim(beta_matrix)
@@ -55,6 +55,12 @@ Seven people have two samples, one has three, and three have one.
 
 ```{r}
 table(table(pheno$person_id))
+```
+
+`dupe` is 0 for the first sample listed for each person and 1 for any later sample, so the 11 samples with a `dupe` of 0 give one sample per person.
+
+```{r}
+table(pheno$dupe)
 ```
 
 ## Summarizing probes
@@ -180,6 +186,28 @@ epic2_df <- data.frame(probe = rownames(epic2), epic2, row.names = NULL)
 collapse_epic2(epic2_df, probe_names = "probe")
 ```
 
+`epic2_betas` is an EPIC v2 version of `beta_matrix`. Its 40 probes cover the same 30 CpG sites, and 9 sites have two or three probes:
+
+```{r}
+cpg_ids <- sub("_.*$", "", rownames(epic2_betas))
+table(table(cpg_ids))
+```
+
+cg29302050 has three probes. Collapsing averages them within each sample, and s05 averages only its two observed probes:
+
+```{r}
+epic2_betas[cpg_ids == "cg29302050", 1:5]
+
+collapsed <- collapse_epic2(epic2_betas)
+collapsed["cg29302050", 1:5]
+```
+
+The first probe of each CpG has the values in `beta_matrix`, so CpGs with one probe keep their `beta_matrix` values. The collapsed matrix has the same row and column names as `beta_matrix`:
+
+```{r}
+identical(dimnames(collapsed), dimnames(beta_matrix))
+```
+
 ## Parallel processing
 
 `methyl_summarize()` and `methyl_reliability()` take a `cores` argument. The probes are split into `cores` chunks that run in parallel through the base parallel package. macOS and Linux use forked processes. Windows uses a socket cluster, which adds some startup time. The results are the same for any value of `cores`.
@@ -218,10 +246,10 @@ reliability <- methyl_reliability(
 )
 ```
 
-Keep the first sample from each person so that people with duplicates are not counted twice, then summarize those samples:
+Keep the samples with a `dupe` of 0 so that people with duplicates are not counted twice, then summarize those samples:
 
 ```{r}
-one_per_person <- pheno$sample_id[!duplicated(pheno$person_id)]
+one_per_person <- pheno$sample_id[pheno$dupe == 0]
 length(one_per_person)
 
 summaries <- methyl_summarize(

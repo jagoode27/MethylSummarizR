@@ -24,6 +24,11 @@
 #' epic2_df <- data.frame(probe = rownames(epic2), epic2, row.names = NULL)
 #' collapse_epic2(epic2_df, probe_names = "probe")
 #'
+#' # Example EPIC v2 data with replicate probes
+#' data(epic2_betas, package = "MethylSummarizR")
+#' dim(epic2_betas)
+#' dim(collapse_epic2(epic2_betas))
+#'
 #' @export
 collapse_epic2 <- function(methyl_data, probe_names = NULL) {
   matrix_input <- is.matrix(methyl_data)
